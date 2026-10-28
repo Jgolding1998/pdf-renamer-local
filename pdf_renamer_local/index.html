@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{CSRF}}">
+  <meta name="color-scheme" content="light dark">
+  <title>PDF Renamer Local</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/static/styles.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body data-limits="{{LIMITS}}">
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="top">
+    <div class="wrap">
+      <h1>PDF Renamer <span class="tag">Local</span></h1>
+      <p class="lede">Rename invoice PDFs by the Customer No or Invoice No printed inside them, check the plan, then download a ZIP. Files are processed on this computer and are not stored.</p>
+    </div>
+  </header>
+
+  <main id="main" class="wrap">
+    <form id="rename-form" class="card" novalidate>
+      <fieldset class="modes">
+        <legend>Name files by</legend>
+        <label class="choice"><input type="radio" name="mode" value="customer" checked> Customer No</label>
+        <label class="choice"><input type="radio" name="mode" value="invoice"> Invoice No</label>
+      </fieldset>
+
+      <div class="field">
+        <label for="prefix">Prefix <span class="hint">(optional)</span></label>
+        <input id="prefix" name="prefix" type="text" value="Customer-" maxlength="32"
+               pattern="[A-Za-z0-9_\-]{0,32}" autocomplete="off" spellcheck="false"
+               aria-describedby="prefix-help prefix-error">
+        <p id="prefix-help" class="hint">Letters, digits, - and _ only. Example result: <code id="example">Customer-C10042.pdf</code></p>
+        <p id="prefix-error" class="field-error" hidden>Use only letters, digits, - and _ (up to 32).</p>
+      </div>
+
+      <div class="drop" id="drop">
+        <input id="files" name="files" type="file" accept=".pdf,application/pdf" multiple class="visually-hidden">
+        <label for="files" class="drop-label">
+          <span class="drop-title">Choose PDFs</span>
+          <span class="hint">or drag and drop them here</span>
+        </label>
+        <p class="limits hint">Up to {{MAX_FILES}} files, {{MAX_FILE_MB}} MB each, {{MAX_TOTAL_MB}} MB total, {{MAX_PAGES}} pages per PDF.</p>
+      </div>
+
+      <div id="selection" class="selection" hidden>
+        <div class="selection-head">
+          <h2 id="selection-title">Selected files</h2>
+          <button type="button" id="clear" class="link">Clear all</button>
+        </div>
+        <ul id="file-list" class="file-list" aria-labelledby="selection-title"></ul>
+      </div>
+
+      <div class="actions">
+        <button type="submit" id="preview" class="primary" disabled>Preview renames</button>
+        <button type="button" id="download" class="secondary" disabled>Download ZIP</button>
+      </div>
+      <p id="status" class="status" role="status" aria-live="polite"></p>
+    </form>
+
+    <section id="results" class="card" hidden aria-labelledby="results-title">
+      <div class="results-head">
+        <h2 id="results-title">Rename plan</h2>
+        <p id="summary" class="summary"></p>
+      </div>
+      <p id="stale" class="notice" hidden>Files or options changed. Preview again before downloading.</p>
+      <div class="table-wrap">
+        <table>
+          <caption class="visually-hidden">Planned new name for each uploaded file</caption>
+          <thead>
+            <tr><th scope="col">#</th><th scope="col">Original file</th><th scope="col">Result</th><th scope="col">New name or reason</th></tr>
+          </thead>
+          <tbody id="plan-rows"></tbody>
+        </table>
+      </div>
+      <p class="hint">The ZIP contains only the files marked Renamed, with exactly these names. Duplicate numbers get -2, -3 in upload order.</p>
+    </section>
+  </main>
+
+  <footer class="wrap foot">
+    <p>Runs on your machine. No accounts, no uploads to third parties. See SECURITY.md before exposing it on a network.</p>
+  </footer>
+</body>
+</html>

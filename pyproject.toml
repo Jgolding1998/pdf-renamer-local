@@ -1,0 +1,12 @@
+[project]
+name = "pdf-renamer-local"
+version = "1.0.0"
+description = "Local web app that renames invoice PDFs by the Customer No or Invoice No inside them."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+filterwarnings = ["ignore:Using `httpx` with `starlette.testclient` is deprecated"]
