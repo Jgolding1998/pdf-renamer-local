@@ -24,6 +24,7 @@ STATIC_DIR = Path(__file__).parent / "static"
 CSRF_COOKIE = "pdfr_csrf"
 CSRF_HEADER = "x-csrf-token"
 TOKEN_RE = re.compile(r"[A-Za-z0-9_-]{43}")
+PLAN_ID_RE = re.compile(r"[0-9a-f]{64}")
 SAFE_METHODS = {"GET", "HEAD"}
 
 SECURITY_HEADERS = [
@@ -177,7 +178,7 @@ def create_app(settings: Settings | None = None) -> ASGIApp:
     async def healthz() -> dict:
         return {"ok": True}
 
-    async def plan_request(request: Request):
+    async def plan_request(request: Request, *, require_plan_id: bool = False):
         problem = check_origin(request)
         if problem:
             return None, None, error(403, problem)
@@ -187,6 +188,8 @@ def create_app(settings: Settings | None = None) -> ASGIApp:
             return None, None, error(408, "Upload took too long. Try a smaller batch.")
         except UploadError as exc:
             return None, None, error(exc.status, exc.message)
+        if require_plan_id and not PLAN_ID_RE.fullmatch(fields.get("plan_id", "")):
+            return None, None, error(422, "Invalid preview id. Preview the current files before downloading.")
         mode = fields.get("mode", "customer")
         prefix = fields.get("prefix", "")
         if mode not in FIELDS:
@@ -207,7 +210,7 @@ def create_app(settings: Settings | None = None) -> ASGIApp:
 
     @app.post("/api/zip")
     async def download(request: Request) -> Response:
-        fields, bundle, problem = await plan_request(request)
+        fields, bundle, problem = await plan_request(request, require_plan_id=True)
         if problem:
             return problem
         files, plan = bundle
