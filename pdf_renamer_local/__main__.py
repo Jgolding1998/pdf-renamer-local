@@ -27,6 +27,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--port", type=int, default=8000)
     args = parser.parse_args(argv)
 
+    try:
+        address = ipaddress.ip_address(args.host)
+    except ValueError:
+        address = None
+    if isinstance(address, ipaddress.IPv6Address) and address.ipv4_mapped is not None:
+        print("IPv4-mapped IPv6 bind addresses are unsupported. Use 127.0.0.1 or ::1 for loopback.", file=sys.stderr)
+        return 2
+
     if not is_loopback(args.host) and os.environ.get("PDFR_ALLOW_NON_LOOPBACK") != "1":
         print(
             "Refusing to bind a non-loopback address. This app has no authentication.\n"
