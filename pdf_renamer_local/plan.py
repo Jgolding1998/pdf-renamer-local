@@ -33,6 +33,7 @@ def messages(settings: Settings, mode: str) -> dict[str, str]:
         "timeout": "Reading this PDF took too long and was stopped.",
         "budget": "Skipped because the request ran out of processing time.",
         "failed": "The PDF parser stopped unexpectedly on this file.",
+        "dependency_missing": "PDF dependencies are unavailable to the isolated parser. Install the project in a virtual environment and launch it from there.",
     }
 
 

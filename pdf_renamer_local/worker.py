@@ -39,6 +39,7 @@ def main(argv: list[str]) -> int:
     from pdf_renamer_local.extract import analyze
 
     stdin, stdout = sys.stdin.buffer, sys.stdout.buffer
+    dependency_missing = False
     while True:
         header = _read_exact(stdin, 4)
         if header is None:
@@ -48,7 +49,11 @@ def main(argv: list[str]) -> int:
         if data is None:
             return 0
         try:
-            result = analyze(data, options["mode"], options["max_pages"], options["max_text_chars"])
+            result = ({"status": "error", "code": "dependency_missing"} if dependency_missing
+                      else analyze(data, options["mode"], options["max_pages"], options["max_text_chars"]))
+        except ImportError:
+            dependency_missing = True
+            result = {"status": "error", "code": "dependency_missing"}
         except MemoryError:
             result = {"status": "error", "code": "failed"}
         del data
