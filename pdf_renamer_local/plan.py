@@ -46,7 +46,7 @@ def build_plan(files: list[UploadedFile], mode: str, prefix: str, settings: Sett
         else:
             precheck.append(None)
 
-    to_parse = [bytes(f.data) for f, code in zip(files, precheck) if code is None]
+    to_parse = [memoryview(f.data) for f, code in zip(files, precheck) if code is None]
     parsed = iter(run_batch(to_parse, mode, settings) if to_parse else [])
 
     results: list[dict] = []
@@ -109,5 +109,5 @@ def build_zip(files: list[UploadedFile], plan: dict) -> bytes:
             info = zipfile.ZipInfo(item["new_name"], date_time=ZIP_TIMESTAMP)
             info.compress_type = zipfile.ZIP_DEFLATED
             info.external_attr = 0o644 << 16
-            archive.writestr(info, bytes(files[item["index"]].data))
+            archive.writestr(info, files[item["index"]].data)
     return buffer.getvalue()

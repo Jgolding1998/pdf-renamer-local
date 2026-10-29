@@ -1,6 +1,8 @@
+import random
+
 import pytest
 
-from pdf_renamer_local.extract import analyze, find_value
+from pdf_renamer_local.extract import _scan, analyze, find_value
 
 from . import pdf_factory as pdf
 
@@ -65,6 +67,47 @@ def test_many_empty_labels_still_find_the_complete_value():
 def test_identifier_is_delimited_by_whitespace_or_end_of_text():
     assert find_value("Customer No: A1\nTotal: 12.00", "customer") == "A1"
     assert find_value("Customer No: A1" + "2" * 38, "customer") == "A1" + "2" * 38
+
+
+@pytest.mark.parametrize("text", ["Customer No: A1", "Customer No: A1.", "Customer No: A1;"])
+def test_end_of_truncated_text_does_not_delimit_an_identifier(text):
+    assert find_value(text, "customer") == "A1"
+    assert find_value(text, "customer", truncated=True) is None
+    assert find_value(text + " Customer No: B2 ", "customer", truncated=True) == "A1"
+
+
+def test_text_limit_never_yields_a_shortened_identifier():
+    data = pdf.make_pdf([["Customer No: C10042777"]])
+    results = {analyze(data, "customer", 5, limit).get("value") for limit in range(1, 40)}
+    assert results == {None, "C10042777"}
+
+
+@pytest.mark.parametrize("line,kept", [("Customer No: C10042777 due", "C10042777"), ("Customer No: C10042777. due", "C10042777.")])
+def test_identifier_ending_exactly_at_the_text_limit_is_complete(line, kept):
+    limit = len("\n" + line.split(kept)[0] + kept)
+    data = pdf.make_pdf([[line]])
+    assert analyze(data, "customer", 5, limit)["value"] == "C10042777"
+    assert analyze(data, "customer", 5, limit - 1).get("value") is None
+
+
+def test_label_at_page_end_finds_value_on_next_page():
+    data = pdf.make_pdf([["Total 4", "Customer No:"], ["C77 due"]])
+    assert run(data)["value"] == "C77"
+
+
+def test_incremental_page_scan_matches_full_rescan():
+    pieces = ["Customer", "Invoice", " ", "\t", "\n", "No", "No.", "Number", "#", "ID", ":",
+              "A1", "B2-3", "x", ".", ",", ";", "none", "_", "Customer No", "Invoice #"]
+    rng = random.Random(5)
+    for _ in range(5000):
+        mode = rng.choice(["customer", "invoice"])
+        text, resume, value = "", 0, None
+        for _ in range(rng.randint(1, 5)):
+            text += "\n" + "".join(rng.choice(pieces) for _ in range(rng.randint(0, 8)))
+            value, resume = _scan(text, mode, resume, False)
+            if value:
+                break
+        assert value == find_value(text, mode), repr(text)
 
 
 def test_invoice_mode():

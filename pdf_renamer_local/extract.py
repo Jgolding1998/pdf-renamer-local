@@ -23,20 +23,36 @@ PATTERNS = {
 _ANY_LABEL = re.compile("|".join(_LABEL.format(word=word) for _, word in FIELDS.values()), re.IGNORECASE)
 
 
-def find_value(text: str, mode: str) -> str | None:
-    for label in PATTERNS[mode].finditer(text):
+def find_value(text: str, mode: str, truncated: bool = False) -> str | None:
+    return _scan(text, mode, 0, truncated)[0]
+
+
+def _scan(text: str, mode: str, start: int, truncated: bool) -> tuple[str | None, int]:
+    """Return the first complete value at or after start, and where the next scan must resume.
+
+    Labels never span a newline and pages are joined with one, so only a label whose gap
+    reaches the end of the text can change outcome when another page is appended. The end
+    of truncated text is not a delimiter, because the identifier may continue past it.
+    """
+    for label in PATTERNS[mode].finditer(text, start):
         start = _GAP.match(text, label.end()).end()
+        if start == len(text):
+            return None, label.start()
         token = _TOKEN.match(text, start)
         if token is None or _VALUE.fullmatch(token.group()) is None:
             continue
         end = token.end()
-        if end == len(text) or text[end].isspace():
-            return token.group()
+        if end == len(text):
+            return (None if truncated else token.group()), end
+        if text[end].isspace():
+            return token.group(), end
         if text[end] in ".,;":
             following = end + 1
-            if following == len(text) or text[following].isspace() or _ANY_LABEL.match(text, following):
-                return token.group()
-    return None
+            if following == len(text):
+                return (None if truncated else token.group()), end
+            if text[following].isspace() or _ANY_LABEL.match(text, following):
+                return token.group(), end
+    return None, len(text)
 
 
 def analyze(data: bytes, mode: str, max_pages: int, max_text_chars: int) -> dict:
@@ -66,13 +82,16 @@ def analyze(data: bytes, mode: str, max_pages: int, max_text_chars: int) -> dict
         return {"status": "error", "code": "too_many_pages", "pages": page_count}
 
     text = ""
+    resume = 0
     for page in reader.pages:
         try:
             chunk = page.extract_text() or ""
         except Exception:
             chunk = ""
-        text = (text + "\n" + chunk)[:max_text_chars]
-        value = find_value(text, mode)
+        joined = text + "\n" + chunk
+        text = joined[:max_text_chars]
+        truncated = len(joined) > max_text_chars and not joined[max_text_chars].isspace()
+        value, resume = _scan(text, mode, resume, truncated)
         if value:
             return {"status": "ok", "value": value, "pages": page_count}
         if len(text) >= max_text_chars:

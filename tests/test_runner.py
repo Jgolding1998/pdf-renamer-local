@@ -21,6 +21,14 @@ def test_hung_worker_is_killed_per_file():
     assert time.monotonic() - started < 10
 
 
+def test_upload_views_larger_than_a_pipe_buffer_are_released_after_a_hung_worker():
+    upload = bytearray(b"%PDF-" + b"x" * (4 * 1024 * 1024))
+    hang = [sys.executable, "-I", "-c", "import time; time.sleep(60)"]
+    results = run_batch([memoryview(upload)], "customer", Settings(file_timeout=0.5), command=hang)
+    assert results == [{"status": "error", "code": "timeout"}]
+    upload.extend(b"x")
+
+
 def test_crashing_worker_reports_failure():
     crash = [sys.executable, "-I", "-c", "import sys; sys.stdin.buffer.read(4); sys.exit(3)"]
     results = run_batch([b"%PDF-x"], "customer", Settings(), command=crash)

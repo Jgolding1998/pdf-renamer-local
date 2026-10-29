@@ -49,7 +49,7 @@ This writes `docs/screenshot-desktop.png` and `docs/screenshot-mobile.png`, then
 
 - New name is `<prefix><value>.pdf`. The prefix is optional, starts with a letter, digit or `_`, and allows up to 32 characters of `A-Z a-z 0-9 - _`. Invalid prefixes receive an error before parsing.
 - The extracted value must start with a letter or digit, contain at least one digit, and use only letters, digits and `-`. Labels like `Customer Name: Bob` are ignored.
-- The complete identifier token must be valid. One trailing period, comma or semicolon is accepted before whitespace, the end of the text or another recognized label. Internal punctuation and overlong values are rejected rather than shortened into a different number.
+- The complete identifier token must be valid. One trailing period, comma or semicolon is accepted before whitespace, the end of the text or another recognized label. Internal punctuation, overlong values and values cut off by the text limit are rejected rather than shortened into a different number.
 - Windows reserved names (`CON`, `NUL`, `COM1`, `LPT1` and the rest) get a leading `_`.
 - Duplicates get `-2`, `-3`, ... in upload order. The comparison ignores case so the ZIP extracts cleanly on Windows and macOS, and a suffix never lands on a name another file already has.
 - The uploaded filename is only shown in the table, after stripping folders and control characters. It is never used to build a path or a ZIP entry.

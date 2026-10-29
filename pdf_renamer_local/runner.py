@@ -92,7 +92,7 @@ class _Worker:
         if (self._writer is not None and self._writer.is_alive()) or self._reader.is_alive():
             raise RuntimeError("Parser pipe thread did not stop after terminating its process")
 
-    def ask(self, data: bytes, timeout: float) -> dict | None:
+    def ask(self, data: bytes | memoryview, timeout: float) -> dict | None:
         if not math.isfinite(timeout) or timeout <= 0:
             raise ValueError("Timeout must be positive and finite")
         deadline = time.monotonic() + timeout
@@ -173,7 +173,7 @@ class _Worker:
 
 
 def run_batch(
-    documents: list[bytes],
+    documents: list[bytes | memoryview],
     mode: str,
     settings: Settings,
     command: list[str] | None = None,
