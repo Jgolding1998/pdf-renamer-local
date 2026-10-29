@@ -49,23 +49,23 @@ def _scan(text: str, mode: str, start: int, truncated: bool, ambiguous: list[boo
         if end == len(text):
             if truncated or not lookahead:
                 return (None if truncated else token.group()), end
-        if context[end].isspace():
-            following = _GAP.match(context, end).end()
-            continuation = _CONTINUATION.match(context, following)
-            incomplete = lookahead_truncated and (following == len(context)
-                or (continuation is not None and continuation.end() == len(context)))
-            if (not _ANY_LABEL.match(context, following)
-                    and (incomplete or _NUMERIC_CONTINUATION.match(context, following) is not None)):
-                if ambiguous is not None:
-                    ambiguous.append(True)
-                continue
-            return token.group(), end
-        if text[end] in ".,;":
-            following = end + 1
-            if following == len(text):
+        following = end
+        if context[end] in ".,;":
+            following += 1
+            if following == len(text) and (truncated or not lookahead):
                 return (None if truncated else token.group()), end
-            if text[following].isspace() or _ANY_LABEL.match(text, following):
-                return token.group(), end
+        if not context[following].isspace() and not _ANY_LABEL.match(context, following):
+            continue
+        following = _GAP.match(context, following).end()
+        continuation = _CONTINUATION.match(context, following)
+        incomplete = lookahead_truncated and (following == len(context)
+            or (continuation is not None and continuation.end() == len(context)))
+        if (not _ANY_LABEL.match(context, following)
+                and (incomplete or _NUMERIC_CONTINUATION.match(context, following) is not None)):
+            if ambiguous is not None:
+                ambiguous.append(True)
+            continue
+        return token.group(), end
     return None, len(text)
 
 
