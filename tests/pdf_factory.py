@@ -71,11 +71,11 @@ def scanned() -> bytes:
     return make_pdf([[]], draw_box=True)
 
 
-def encrypted(user_password: str = "secret") -> bytes:
+def encrypted(user_password: str = "secret", algorithm: str = "RC4-128") -> bytes:
     from pypdf import PdfReader, PdfWriter
 
     writer = PdfWriter(clone_from=PdfReader(io.BytesIO(invoice())))
-    writer.encrypt(user_password=user_password, owner_password="owner", algorithm="RC4-128")
+    writer.encrypt(user_password=user_password, owner_password="owner", algorithm=algorithm)
     buf = io.BytesIO()
     writer.write(buf)
     return buf.getvalue()

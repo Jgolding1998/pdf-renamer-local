@@ -33,6 +33,7 @@ class Settings:
     max_parallel_jobs: int = 2
     worker_memory_mb: int = 768
     allowed_hosts: tuple[str, ...] = field(default=LOOPBACK_HOSTS)
+    public_scheme: str | None = None
 
     def __post_init__(self) -> None:
         bounds = {
@@ -62,6 +63,8 @@ class Settings:
             except ValueError:
                 if len(host) > 253 or not re.fullmatch(r"[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?", host):
                     raise ValueError("allowed_hosts must not include ports, wildcards or URL components.")
+        if self.public_scheme is not None and (not isinstance(self.public_scheme, str) or self.public_scheme not in {"http", "https"}):
+            raise ValueError("public_scheme must be http or https when supplied.")
 
     @property
     def max_body_bytes(self) -> int:
@@ -84,4 +87,5 @@ class Settings:
             allowed_hosts=tuple(h.strip().lower() for h in hosts.split(",") if h.strip())
             if hosts
             else LOOPBACK_HOSTS,
+            public_scheme=os.environ.get("PDFR_PUBLIC_SCHEME") or None,
         )

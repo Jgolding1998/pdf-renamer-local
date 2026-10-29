@@ -12,6 +12,7 @@ Do not expose it directly. Before serving it to anyone else:
 
 1. Put it behind a reverse proxy that enforces real authentication (SSO, OIDC, mTLS or similar) and terminates TLS.
 2. Set `PDFR_ALLOWED_HOSTS` to the public hostname(s) the proxy forwards. Requests with any other `Host` header are rejected.
+   Set `PDFR_PUBLIC_SCHEME=https` when that proxy terminates HTTPS and forwards plain HTTP. This explicit setting controls Origin validation and the cookie's Secure flag; forwarded headers remain untrusted.
 3. Keep the proxy's request body limit at or below `PDFR_MAX_TOTAL_MB` and set its own read timeout. The app also enforces `PDFR_UPLOAD_TIMEOUT` and rejects saturated uploads before reading their bodies.
 4. Run it as an unprivileged user, ideally in a container with a memory limit.
 

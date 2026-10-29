@@ -18,7 +18,6 @@ def run(data, mode="customer", max_pages=50):
         ("Customer No. 77812", "77812"),
         ("CUSTOMER NUMBER # AB-12", "AB-12"),
         ("Customer #4411", "4411"),
-        ("Customer ID:\n  X900", "X900"),
         ("Customer Name: Bob\nCustomer No: K-7", "K-7"),
     ],
 )
@@ -29,6 +28,31 @@ def test_customer_patterns(text, expected):
 @pytest.mark.parametrize("text", ["Customer Name: Sample", "Customer No: none", "Customers: 12", "No customer here"])
 def test_customer_pattern_requires_label_and_digit(text):
     assert find_value(text, "customer") is None
+
+
+@pytest.mark.parametrize("space", ["\u00a0", "\u2009", "\u202f"])
+@pytest.mark.parametrize("mode,label", [("customer", "Customer"), ("invoice", "Invoice")])
+def test_horizontal_unicode_spaces_in_supported_labels(space, mode, label):
+    assert find_value(f"{label}{space}No: C10042", mode) == "C10042"
+
+
+@pytest.mark.parametrize("separator", ["\r", "\v", "\f", "\x1c", "\x1f", "\x85", "\u2028", "\u2029"])
+def test_vertical_unicode_separators_do_not_join_a_label(separator):
+    assert find_value(f"Customer{separator}No: C10042", "customer") is None
+
+
+@pytest.mark.parametrize("following", ["2026-01-15", "0042 Main Street", "12 Widgets", "  X900"])
+def test_blank_label_does_not_take_an_unlabeled_number_from_the_next_line(following):
+    assert find_value(f"Customer No:\n{following}", "customer") is None
+
+
+@pytest.mark.parametrize("value", ["2026-01-15", "0042", "12"])
+def test_explicit_same_line_numeric_identifiers_remain_supported(value):
+    assert find_value(f"Customer No: {value}", "customer") == value
+
+
+def test_blank_label_before_a_date_does_not_hide_a_later_explicit_identifier():
+    assert find_value("Customer No:\n2026-01-15\nCustomer No: C10042", "customer") == "C10042"
 
 
 @pytest.mark.parametrize("value", ["A1_02", "A1/02", "A1.02", "A1:02", "A1,02", "A1\\02", "A1\u200b02", "A1" + "2" * 39])
@@ -90,9 +114,9 @@ def test_identifier_ending_exactly_at_the_text_limit_is_complete(line, kept):
     assert analyze(data, "customer", 5, limit - 1).get("value") is None
 
 
-def test_label_at_page_end_finds_value_on_next_page():
+def test_label_at_page_end_does_not_take_an_unlabeled_value_from_next_page():
     data = pdf.make_pdf([["Total 4", "Customer No:"], ["C77 due"]])
-    assert run(data)["value"] == "C77"
+    assert run(data)["code"] == "no_match"
 
 
 def test_incremental_page_scan_matches_full_rescan():
@@ -136,6 +160,55 @@ def test_error_codes():
 
 def test_encrypted_with_empty_user_password_is_readable():
     assert run(pdf.encrypted(user_password=""))["value"] == "C10042"
+
+
+@pytest.mark.parametrize("algorithm", ["AES-128", "AES-256"])
+def test_owner_only_aes_is_readable_but_open_passwords_are_rejected(algorithm):
+    assert run(pdf.encrypted(user_password="", algorithm=algorithm))["value"] == "C10042"
+    assert run(pdf.encrypted(algorithm=algorithm))["code"] == "encrypted"
+
+
+@pytest.mark.parametrize("failure_stage", ["reader", "decrypt", "page"])
+def test_missing_aes_backend_is_not_misreported_as_a_scan(monkeypatch, failure_stage):
+    import pypdf
+    from pypdf.errors import DependencyError
+
+    class Page:
+        def extract_text(self):
+            raise DependencyError("Synthetic missing backend")
+
+    class Reader:
+        is_encrypted = True
+        pages = [Page()]
+
+        def __init__(self, *args, **kwargs):
+            if failure_stage == "reader":
+                raise DependencyError("Synthetic missing backend")
+
+        def decrypt(self, value):
+            if failure_stage == "decrypt":
+                raise DependencyError("Synthetic missing backend")
+            return 1
+
+    monkeypatch.setattr(pypdf, "PdfReader", Reader)
+    assert run(pdf.invoice())["code"] == "unsupported_encryption"
+
+
+def test_unreadable_page_is_not_reported_as_a_scan_or_renamed_from_later_pages():
+    import io
+    from pypdf import PdfReader, PdfWriter
+    from pypdf.generic import EncodedStreamObject, NameObject
+
+    writer = PdfWriter()
+    page = writer.add_page(PdfReader(io.BytesIO(pdf.invoice())).pages[0])
+    stream = EncodedStreamObject()
+    stream._data = b"GG>"
+    stream[NameObject("/Filter")] = NameObject("/ASCIIHexDecode")
+    page[NameObject("/Contents")] = writer._add_object(stream)
+    writer.add_page(PdfReader(io.BytesIO(pdf.invoice())).pages[0])
+    buffer = io.BytesIO()
+    writer.write(buffer)
+    assert run(buffer.getvalue())["code"] == "corrupt"
 
 
 def test_header_only_pdf_is_corrupt():

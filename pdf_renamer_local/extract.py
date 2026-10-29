@@ -13,8 +13,9 @@ FIELDS = {
 
 _VALUE = re.compile(r"(?=[A-Za-z-]*\d)[A-Za-z0-9][A-Za-z0-9-]{0,39}")
 _TOKEN = re.compile(r"[A-Za-z0-9-]{1,41}")
-_GAP = re.compile(r"\s*")
-_LABEL = r"\b{word}[ \t]*(?:No\b\.?|Number\b|#|ID\b)[ \t]*[:#.]?[ \t]*"
+_HSPACE = r"[^\S\r\n\v\f\x1c-\x1f\x85\u2028\u2029]"
+_GAP = re.compile(_HSPACE + "*")
+_LABEL = rf"\b{{word}}{_HSPACE}*(?:No\b\.?|Number\b|#|ID\b){_HSPACE}*[:#.]?{_HSPACE}*"
 
 PATTERNS = {
     mode: re.compile(_LABEL.format(word=word), re.IGNORECASE)
@@ -30,9 +31,8 @@ def find_value(text: str, mode: str, truncated: bool = False) -> str | None:
 def _scan(text: str, mode: str, start: int, truncated: bool) -> tuple[str | None, int]:
     """Return the first complete value at or after start, and where the next scan must resume.
 
-    Labels never span a newline and pages are joined with one, so only a label whose gap
-    reaches the end of the text can change outcome when another page is appended. The end
-    of truncated text is not a delimiter, because the identifier may continue past it.
+    Only horizontal whitespace may separate a label from its value. The end of truncated
+    text is not a delimiter, because the identifier may continue past it.
     """
     for label in PATTERNS[mode].finditer(text, start):
         start = _GAP.match(text, label.end()).end()
@@ -63,6 +63,7 @@ def analyze(data: bytes, mode: str, max_pages: int, max_text_chars: int) -> dict
 
     logging.getLogger("pypdf").setLevel(logging.CRITICAL)
     from pypdf import PdfReader
+    from pypdf.errors import DependencyError
 
     try:
         reader = PdfReader(io.BytesIO(data), strict=False)
@@ -70,9 +71,13 @@ def analyze(data: bytes, mode: str, max_pages: int, max_text_chars: int) -> dict
             try:
                 if not reader.decrypt(""):
                     return {"status": "error", "code": "encrypted"}
+            except DependencyError:
+                return {"status": "error", "code": "unsupported_encryption"}
             except Exception:
                 return {"status": "error", "code": "encrypted"}
         page_count = len(reader.pages)
+    except DependencyError:
+        return {"status": "error", "code": "unsupported_encryption"}
     except Exception:
         return {"status": "error", "code": "corrupt"}
 
@@ -86,8 +91,10 @@ def analyze(data: bytes, mode: str, max_pages: int, max_text_chars: int) -> dict
     for page in reader.pages:
         try:
             chunk = page.extract_text() or ""
+        except DependencyError:
+            return {"status": "error", "code": "unsupported_encryption", "pages": page_count}
         except Exception:
-            chunk = ""
+            return {"status": "error", "code": "corrupt", "pages": page_count}
         joined = text + "\n" + chunk
         text = joined[:max_text_chars]
         truncated = len(joined) > max_text_chars and not joined[max_text_chars].isspace()

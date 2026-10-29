@@ -64,7 +64,7 @@ This writes `docs/screenshot-desktop.png` and `docs/screenshot-mobile.png`, then
 
 **No OCR.** Scanned PDFs are reported as needing OCR. OCR remains a separate step to keep the runtime small and predictable.
 
-**pypdf** (BSD-3-Clause) is the only PDF dependency. The earlier private version used PyMuPDF, which is AGPL and harder to ship in a permissively licensed project.
+**pypdf** (BSD-3-Clause) reads PDFs, with **cryptography** (Apache-2.0 or BSD-3-Clause) for AES support. Files with an empty open password can be read without changing the exported bytes.
 
 Limits are configurable with environment variables:
 
@@ -81,6 +81,7 @@ Limits are configurable with environment variables:
 | `PDFR_MAX_PARALLEL_JOBS` | 2 |
 | `PDFR_WORKER_MEMORY_MB` (POSIX only) | 768 |
 | `PDFR_ALLOWED_HOSTS` | `127.0.0.1,localhost,::1` |
+| `PDFR_PUBLIC_SCHEME` | unset; use `https` behind a TLS-terminating proxy |
 
 Settings reject zero, negative, nonfinite, and excessive limits. The defaults suit a single local user. Raising limits increases memory use; parser memory caps are supported on POSIX only.
 
@@ -88,7 +89,7 @@ Settings reject zero, negative, nonfinite, and excessive limits. The defaults su
 
 - Text-layer PDFs only. Scanned images are rejected with a clear message.
 - Password-protected PDFs are not unlocked. PDFs with an owner password but no open password are read normally.
-- The first complete supported identifier after a matching label is used. Empty or unsupported occurrences are skipped. Unusual layouts that split the label itself across lines may not match.
+- The label and identifier must share one extracted text line, with horizontal spaces including nonbreaking spaces accepted. Empty or unsupported occurrences are skipped; values on later lines or pages are not guessed.
 - The per-process memory cap is not applied on Windows; the size, page and time limits still are.
 - There is no authentication. See [SECURITY.md](SECURITY.md) before running it anywhere but your own machine.
 - Renaming does not sanitize a PDF. Metadata, embedded content, and the original document bytes remain unchanged. Review documents separately before sharing them.

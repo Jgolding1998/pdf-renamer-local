@@ -11,5 +11,7 @@ dist/
 samples/
 *.zip
 .env
+.env.*
+work/
 .DS_Store
 Thumbs.db

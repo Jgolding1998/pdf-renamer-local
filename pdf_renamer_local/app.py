@@ -109,7 +109,7 @@ class GuardMiddleware:
         return wrapped
 
 
-def check_origin(request: Request) -> str | None:
+def check_origin(request: Request, public_scheme: str | None = None) -> str | None:
     origin = request.headers.get("origin")
     if not origin:
         return "Missing Origin header."
@@ -117,7 +117,7 @@ def check_origin(request: Request) -> str | None:
         parts = urlsplit(origin)
     except ValueError:
         return "Cross-origin request rejected."
-    if (parts.scheme != request.url.scheme or parts.scheme not in ("http", "https")
+    if (parts.scheme != (public_scheme or request.url.scheme) or parts.scheme not in ("http", "https")
             or parts.netloc.lower() != request.headers.get("host", "").lower()
             or parts.username is not None or parts.password is not None
             or parts.path or parts.query or parts.fragment or any(char.isspace() for char in origin)):
@@ -169,7 +169,7 @@ def create_app(settings: Settings | None = None) -> ASGIApp:
             token,
             httponly=True,
             samesite="strict",
-            secure=request.url.scheme == "https",
+            secure=(settings.public_scheme or request.url.scheme) == "https",
             path="/",
         )
         return response
@@ -179,7 +179,7 @@ def create_app(settings: Settings | None = None) -> ASGIApp:
         return {"ok": True}
 
     async def plan_request(request: Request, *, require_plan_id: bool = False):
-        problem = check_origin(request)
+        problem = check_origin(request, settings.public_scheme)
         if problem:
             return None, None, error(403, problem)
         try:

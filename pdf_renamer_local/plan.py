@@ -23,6 +23,7 @@ def messages(settings: Settings, mode: str) -> dict[str, str]:
         "not_pdf": "This is not a PDF file.",
         "too_large": f"The file is larger than the {settings.max_file_bytes // MB} MB per-file limit.",
         "encrypted": "The PDF is password protected. Remove the password and try again.",
+        "unsupported_encryption": "AES support is unavailable in this installation. Reinstall the requirements and try again.",
         "corrupt": "The PDF could not be read. It may be damaged or incomplete.",
         "too_many_pages": f"The PDF has more than {settings.max_pages} pages.",
         "no_text": "No selectable text was found. Scanned PDFs need OCR before they can be renamed.",
