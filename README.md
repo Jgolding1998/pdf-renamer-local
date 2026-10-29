@@ -47,8 +47,9 @@ This writes `docs/screenshot-desktop.png` and `docs/screenshot-mobile.png`, then
 
 ## Naming rules
 
-- New name is `<prefix><value>.pdf`. The prefix is optional, up to 32 characters of `A-Z a-z 0-9 - _`, and is rejected (not silently changed) if it contains anything else.
+- New name is `<prefix><value>.pdf`. The prefix is optional, starts with a letter, digit or `_`, and allows up to 32 characters of `A-Z a-z 0-9 - _`. Invalid prefixes receive an error before parsing.
 - The extracted value must start with a letter or digit, contain at least one digit, and use only letters, digits and `-`. Labels like `Customer Name: Bob` are ignored.
+- The complete identifier token must be valid. One trailing period, comma or semicolon is accepted before whitespace, the end of the text or another recognized label. Internal punctuation and overlong values are rejected rather than shortened into a different number.
 - Windows reserved names (`CON`, `NUL`, `COM1`, `LPT1` and the rest) get a leading `_`.
 - Duplicates get `-2`, `-3`, ... in upload order. The comparison ignores case so the ZIP extracts cleanly on Windows and macOS, and a suffix never lands on a name another file already has.
 - The uploaded filename is only shown in the table, after stripping folders and control characters. It is never used to build a path or a ZIP entry.
@@ -87,7 +88,7 @@ Settings reject zero, negative, nonfinite, and excessive limits. The defaults su
 
 - Text-layer PDFs only. Scanned images are rejected with a clear message.
 - Password-protected PDFs are not unlocked. PDFs with an owner password but no open password are read normally.
-- Only the first match of the label is used. Unusual layouts that split the label and the number into separate text runs may not match.
+- The first complete supported identifier after a matching label is used. Empty or unsupported occurrences are skipped. Unusual layouts that split the label itself across lines may not match.
 - The per-process memory cap is not applied on Windows; the size, page and time limits still are.
 - There is no authentication. See [SECURITY.md](SECURITY.md) before running it anywhere but your own machine.
 - Renaming does not sanitize a PDF. Metadata, embedded content, and the original document bytes remain unchanged. Review documents separately before sharing them.

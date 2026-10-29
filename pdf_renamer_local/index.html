@@ -30,10 +30,10 @@
       <div class="field">
         <label for="prefix">Prefix <span class="hint">(optional)</span></label>
         <input id="prefix" name="prefix" type="text" value="Customer-" maxlength="32"
-               pattern="[A-Za-z0-9_\-]{0,32}" autocomplete="off" spellcheck="false"
+               pattern="(?:[A-Za-z0-9_][A-Za-z0-9_\-]{0,31})?" autocomplete="off" spellcheck="false"
                aria-describedby="prefix-help prefix-error">
-        <p id="prefix-help" class="hint">Letters, digits, - and _ only. Example result: <code id="example">Customer-C10042.pdf</code></p>
-        <p id="prefix-error" class="field-error" hidden>Use only letters, digits, - and _ (up to 32).</p>
+        <p id="prefix-help" class="hint">Start with a letter, digit or _. Use letters, digits, - and _ only. Example result: <code id="example">Customer-C10042.pdf</code></p>
+        <p id="prefix-error" class="field-error" hidden>Use up to 32 letters, digits, - and _; do not start with -.</p>
       </div>
 
       <div class="drop" id="drop">

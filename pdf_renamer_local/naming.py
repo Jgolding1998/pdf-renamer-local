@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 import unicodedata
 
-PREFIX_RE = re.compile(r"[A-Za-z0-9_-]{0,32}")
+PREFIX_RE = re.compile(r"(?:[A-Za-z0-9_][A-Za-z0-9_-]{0,31})?")
 STEM_RE = re.compile(r"[A-Za-z0-9_][A-Za-z0-9_-]{0,99}")
 MAX_DISPLAY = 120
 

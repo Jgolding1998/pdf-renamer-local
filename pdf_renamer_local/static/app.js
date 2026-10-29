@@ -4,7 +4,7 @@
   const $ = (id) => document.getElementById(id);
   const limits = JSON.parse(document.body.dataset.limits);
   const csrf = document.querySelector('meta[name="csrf-token"]').content;
-  const PREFIX_RE = /^[A-Za-z0-9_-]{0,32}$/;
+  const PREFIX_RE = /^(?:[A-Za-z0-9_][A-Za-z0-9_-]{0,31})?$/;
 
   const form = $("rename-form");
   const input = $("files");

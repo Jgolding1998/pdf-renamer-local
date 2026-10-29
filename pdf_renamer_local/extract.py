@@ -11,18 +11,32 @@ FIELDS = {
     "invoice": ("Invoice No", r"Invoice"),
 }
 
-_VALUE = r"(?=[A-Za-z-]*\d)([A-Za-z0-9][A-Za-z0-9-]{0,39})(?![A-Za-z0-9-])"
-_LABEL = r"\b{word}\s*(?:No\b\.?|Number\b|#|ID\b)\s*[:#.]?\s*"
+_VALUE = re.compile(r"(?=[A-Za-z-]*\d)[A-Za-z0-9][A-Za-z0-9-]{0,39}")
+_TOKEN = re.compile(r"[A-Za-z0-9-]{1,41}")
+_GAP = re.compile(r"\s*")
+_LABEL = r"\b{word}[ \t]*(?:No\b\.?|Number\b|#|ID\b)[ \t]*[:#.]?[ \t]*"
 
 PATTERNS = {
-    mode: re.compile(_LABEL.format(word=word) + _VALUE, re.IGNORECASE)
+    mode: re.compile(_LABEL.format(word=word), re.IGNORECASE)
     for mode, (_, word) in FIELDS.items()
 }
+_ANY_LABEL = re.compile("|".join(_LABEL.format(word=word) for _, word in FIELDS.values()), re.IGNORECASE)
 
 
 def find_value(text: str, mode: str) -> str | None:
-    match = PATTERNS[mode].search(text)
-    return match.group(1) if match else None
+    for label in PATTERNS[mode].finditer(text):
+        start = _GAP.match(text, label.end()).end()
+        token = _TOKEN.match(text, start)
+        if token is None or _VALUE.fullmatch(token.group()) is None:
+            continue
+        end = token.end()
+        if end == len(text) or text[end].isspace():
+            return token.group()
+        if text[end] in ".,;":
+            following = end + 1
+            if following == len(text) or text[following].isspace() or _ANY_LABEL.match(text, following):
+                return token.group()
+    return None
 
 
 def analyze(data: bytes, mode: str, max_pages: int, max_text_chars: int) -> dict:

@@ -44,6 +44,17 @@ def main():
             page.goto(f"http://127.0.0.1:{port}/")
             page.set_input_files("#files", {"name": "sample.pdf", "mimeType": "application/pdf", "buffer": b"%PDF-synthetic"})
 
+            for value in ("-", "-x", "--"):
+                page.fill("#prefix", value)
+                assert page.locator("#prefix").get_attribute("aria-invalid") == "true"
+                assert not page.evaluate("document.querySelector('#prefix').checkValidity()")
+                page.click("#preview")
+                assert not pending
+            for value in ("", "_", "Customer-"):
+                page.fill("#prefix", value)
+                assert page.locator("#prefix").get_attribute("aria-invalid") == "false"
+                assert page.evaluate("document.querySelector('#prefix').checkValidity()")
+
             def assert_busy():
                 for selector in ("#prefix", "#files", "#clear", "#preview", "#download"):
                     assert page.locator(selector).is_disabled(), selector

@@ -195,7 +195,7 @@ def create_app(settings: Settings | None = None) -> ASGIApp:
         if mode not in FIELDS:
             return None, None, error(422, "Unknown rename mode.")
         if not valid_prefix(prefix):
-            return None, None, error(422, "Prefix may only use letters, digits, - and _ (up to 32).")
+            return None, None, error(422, "Prefix must start with a letter, digit or _ and use only letters, digits, - and _ (up to 32).")
         if not files:
             return None, None, error(422, "Choose at least one PDF.")
         plan = await run_in_threadpool(build_plan, files, mode, prefix, settings)
