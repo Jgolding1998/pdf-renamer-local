@@ -35,6 +35,8 @@ Do not expose it directly. Before serving it to anyone else:
 - No telemetry, no external network calls, no API keys.
 - Exported PDF bytes are unchanged. Renaming does not strip metadata, remove embedded content, or establish that a document is safe to share.
 
-## Reporting a problem
+## Reporting a vulnerability
 
-Please open a private security advisory on the repository rather than a public issue.
+Use [Security > Report a vulnerability](https://github.com/Jgolding1998/pdf-renamer-local/security/advisories/new) to send a private report. Do not submit vulnerability details through the public feedback form.
+
+Include the affected version, platform, expected behavior and a synthetic reproduction. Leave out credentials, personal information and private files.
