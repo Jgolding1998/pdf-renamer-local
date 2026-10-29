@@ -88,3 +88,16 @@ def corrupt() -> bytes:
 
 def many_pages(count: int) -> bytes:
     return make_pdf([[f"Page {n}"] for n in range(count)])
+
+
+def kerned_customer(suffix: str = "42") -> bytes:
+    from pypdf import PdfReader, PdfWriter
+    from pypdf.generic import DecodedStreamObject, NameObject
+
+    writer = PdfWriter(clone_from=PdfReader(io.BytesIO(make_pdf([[]]))))
+    stream = DecodedStreamObject()
+    stream.set_data(("BT /F1 12 Tf 72 720 Td [(Customer No: C100) -150 (" + _escape(suffix) + ")] TJ ET").encode("ascii"))
+    writer.pages[0][NameObject("/Contents")] = writer._add_object(stream)
+    output = io.BytesIO()
+    writer.write(output)
+    return output.getvalue()

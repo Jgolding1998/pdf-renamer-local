@@ -4,6 +4,7 @@ import argparse
 import ipaddress
 import os
 import sys
+from dataclasses import replace
 
 import uvicorn
 
@@ -37,12 +38,15 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         settings = Settings.from_env()
+        if is_loopback(args.host) and not os.environ.get("PDFR_ALLOWED_HOSTS"):
+            settings = replace(settings, allowed_hosts=tuple(dict.fromkeys((*settings.allowed_hosts, args.host.lower()))))
         if not 1 <= args.port <= 65535:
             raise ValueError("Port must be between 1 and 65535.")
     except ValueError as exc:
         print(f"Invalid configuration: {exc}", file=sys.stderr)
         return 2
-    print(f"PDF Renamer Local on http://{args.host}:{args.port}/ (no external processing services)")
+    url_host = f"[{args.host}]" if ":" in args.host else args.host
+    print(f"PDF Renamer Local on http://{url_host}:{args.port}/ (no external processing services)")
     uvicorn.run(
         create_app(settings),
         host=args.host,

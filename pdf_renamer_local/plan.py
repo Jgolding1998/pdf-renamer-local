@@ -28,6 +28,7 @@ def messages(settings: Settings, mode: str) -> dict[str, str]:
         "too_many_pages": f"The PDF has more than {settings.max_pages} pages.",
         "no_text": "No selectable text was found. Scanned PDFs need OCR before they can be renamed.",
         "no_match": f"No {label} was found in the text.",
+        "ambiguous_identifier": "The identifier may be split across multiple tokens. Review the PDF text layout before renaming.",
         "invalid_name": f"The {label} found cannot form a safe file name.",
         "timeout": "Reading this PDF took too long and was stopped.",
         "budget": "Skipped because the request ran out of processing time.",
