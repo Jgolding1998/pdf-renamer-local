@@ -70,6 +70,21 @@ def test_zip_matches_preview_exactly(session):
             assert archive.read(item["new_name"]) == batch[item["index"]][1]
 
 
+def test_text_limit_is_reported_and_download_matches_preview():
+    session = make_session(Settings(max_text_chars=1000))
+    filler = ["Line of statement text " + str(n) for n in range(400)]
+    batch = [("long.pdf", pdf.make_pdf([filler, ["Customer No: C10042"]])), ("short.pdf", pdf.invoice("C7"))]
+    plan = session.preview(batch).json()
+    long_item, short_item = plan["items"]
+    assert long_item["status"] == "error" and long_item["code"] == "text_limit"
+    assert "first 1,000 characters" in long_item["message"] and "C10042" not in long_item["message"]
+    assert short_item["new_name"] == "Customer-C7.pdf"
+    assert session.preview(batch).json() == plan
+    response = session.zip(batch, plan["plan_id"])
+    assert response.status_code == 200
+    assert zipfile.ZipFile(io.BytesIO(response.content)).namelist() == ["Customer-C7.pdf"]
+
+
 def test_plan_is_deterministic(session):
     batch = mixed_batch()
     first = session.preview(batch).json()

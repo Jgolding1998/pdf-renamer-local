@@ -114,6 +114,37 @@ def test_identifier_ending_exactly_at_the_text_limit_is_complete(line, kept):
     assert analyze(data, "customer", 5, limit - 1).get("value") is None
 
 
+def test_identifier_past_the_default_text_limit_reports_the_limit_not_no_match():
+    filler = [f"Statement filler line {n:05d} with ordinary account text" for n in range(700)]
+    pages = [filler] * 6 + [["Customer No: C10042"]]
+    data = pdf.make_pdf(pages)
+    assert run(data) == {"status": "error", "code": "text_limit", "pages": 7}
+    assert analyze(data, "customer", 10, 1_000_000)["value"] == "C10042"
+
+
+def test_identifier_past_a_small_text_limit_on_the_same_or_a_later_page():
+    filler = ["Line of statement text " + str(n) for n in range(400)]
+    same_page = pdf.make_pdf([filler + ["Customer No: C10042"]])
+    later_page = pdf.make_pdf([filler, ["Customer No: C10042"]])
+    for data in (same_page, later_page):
+        assert analyze(data, "customer", 5, 1000)["code"] == "text_limit"
+        assert analyze(data, "customer", 5, 200_000)["value"] == "C10042"
+
+
+def test_text_that_fits_the_limit_exactly_is_still_no_match():
+    data = pdf.make_pdf([["Thanks for your order"]])
+    length = len("\n" + analyze_text(data))
+    assert analyze(data, "customer", 5, length)["code"] == "no_match"
+    assert analyze(data, "customer", 5, length - 1)["code"] == "text_limit"
+
+
+def analyze_text(data):
+    import io
+    from pypdf import PdfReader
+
+    return PdfReader(io.BytesIO(data)).pages[0].extract_text()
+
+
 def test_label_at_page_end_does_not_take_an_unlabeled_value_from_next_page():
     data = pdf.make_pdf([["Total 4", "Customer No:"], ["C77 due"]])
     assert run(data)["code"] == "no_match"

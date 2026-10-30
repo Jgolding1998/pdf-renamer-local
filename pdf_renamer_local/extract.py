@@ -103,7 +103,8 @@ def analyze(data: bytes, mode: str, max_pages: int, max_text_chars: int) -> dict
     text = ""
     resume = 0
     ambiguous = []
-    for page in reader.pages:
+    limited = False
+    for number, page in enumerate(reader.pages, 1):
         try:
             chunk = page.extract_text() or ""
         except DependencyError:
@@ -119,7 +120,14 @@ def analyze(data: bytes, mode: str, max_pages: int, max_text_chars: int) -> dict
         if value:
             return {"status": "ok", "value": value, "pages": page_count}
         if len(text) >= max_text_chars:
+            # Text past the limit, or pages after it, were never searched.
+            limited = len(joined) > max_text_chars or number < page_count
             break
 
-    code = "ambiguous_identifier" if ambiguous else "no_match" if text.strip() else "no_text"
+    if ambiguous:
+        code = "ambiguous_identifier"
+    elif limited:
+        code = "text_limit"
+    else:
+        code = "no_match" if text.strip() else "no_text"
     return {"status": "error", "code": code, "pages": page_count}
