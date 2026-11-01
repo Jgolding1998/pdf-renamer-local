@@ -29,6 +29,8 @@ Do not expose it directly. Before serving it to anyone else:
 
 ## Data handling
 
+Runtime and development dependency closures are pinned with official PyPI wheel SHA-256 hashes. Install with `--require-hashes --only-binary=:all:` to avoid source-build installation hooks. CI audits those exact locks and separately checks an installed wheel from a new environment outside the checkout, using a fake parser and synthetic bytes. The wheel includes its local HTML/CSS/JavaScript; these checks do not establish that an arbitrary PDF or native dependency is safe.
+
 - Uploads live in memory for the duration of one request and are not written to disk, cached or stored.
 - The parser process receives bytes over a pipe and exits when the request ends.
 - Logs contain only standard access lines (method, path, status). Filenames, extracted numbers and document text are never logged.

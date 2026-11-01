@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools==84.2.1"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "pdf-renamer-local"
 version = "1.0.0"
@@ -5,6 +9,23 @@ description = "Local web app that renames invoice PDFs by the Customer No or Inv
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.11"
+dependencies = [
+    "fastapi==0.162.0",
+    "starlette==1.10.0",
+    "uvicorn==0.54.0",
+    "python-multipart==0.0.32",
+    "pypdf==6.21.4",
+    "cryptography==50.0.2",
+]
+
+[project.scripts]
+pdf-renamer-local = "pdf_renamer_local.__main__:main"
+
+[tool.setuptools]
+packages = ["pdf_renamer_local"]
+
+[tool.setuptools.package-data]
+pdf_renamer_local = ["index.html", "static/*.js", "static/*.css"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
