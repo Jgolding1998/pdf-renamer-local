@@ -20,7 +20,7 @@ Python 3.11 or newer.
 ```bash
 python -m venv .venv
 # Windows: .venv\Scripts\activate    macOS/Linux: source .venv/bin/activate
-pip install -r requirements.txt
+python -m pip install --require-hashes --only-binary=:all: -r requirements-bootstrap.txt -r requirements.txt
 python -m pdf_renamer_local            # http://127.0.0.1:8000
 python -m pdf_renamer_local --port 9000
 ```
@@ -30,11 +30,13 @@ Want something to try it on? `python scripts/make_sample_pdfs.py samples` writes
 ## Test
 
 ```bash
-pip install -r requirements-dev.txt
+python -m pip install --require-hashes --only-binary=:all: -r requirements-dev.txt
 python -m pytest
 ```
 
 Every test PDF is generated in code (`tests/pdf_factory.py`), so no real documents are in the repo. The suite covers extraction patterns, naming rules and collisions, mixed batches, preview and ZIP equivalence, size, count, page and time limits, a hung or crashing parser, Host, Origin and CSRF checks, and hostile filenames.
+
+CI also installs a built wheel into a fresh environment outside the checkout, checks its bundled interface and launch commands, and verifies preview and export with a fake parser from a path containing spaces and non-ASCII characters.
 
 Screenshots and a real-browser download check:
 
